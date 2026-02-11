@@ -332,75 +332,35 @@ const App = () => {
           </main>
         )}
 
-        {/* IA ASSISTANT */}
-        {activeTab === "ai" && (
-          <div className="flex-1 flex animate-in fade-in zoom-in-95 duration-300 overflow-hidden">
-            <aside className="w-72 border-r border-slate-200 bg-white flex flex-col shrink-0">
-               <div className="p-6 border-b border-slate-100 flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Chats</span>
-                  <div className="flex gap-1">
-                    <button onClick={() => { const n = prompt("Nova Pasta:"); if(n) setFolders([...folders, n])}} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400"><FolderPlus size={16}/></button>
-                    <button onClick={createNewChat} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-600 transition-all"><Plus size={16}/></button>
-                  </div>
-               </div>
-               <div className="flex-1 overflow-y-auto p-4 space-y-6">
-                  {folders.map(folder => (
-                    <div key={folder} className="space-y-1">
-                      <p className="px-2 text-[9px] font-black text-slate-400 uppercase flex items-center gap-2 mb-2"><Folder size={12}/> {folder}</p>
-                      {chats.filter(c => c.folder === folder).map(c => (
-                        <div key={c.id} className={`group relative flex items-center rounded-xl transition-all ${activeChatId === c.id ? 'bg-blue-50 text-blue-700' : 'hover:bg-slate-50 text-slate-600'}`}>
-                          <button onClick={() => setActiveChatId(c.id)} className="flex-1 text-left p-3 text-xs font-bold truncate">{c.title}</button>
-                          <div className="opacity-0 group-hover:opacity-100 flex items-center pr-2">
-                            <button onClick={() => renameChat(c.id)} className="p-1 hover:text-blue-600"><Edit2 size={12}/></button>
-                            <button onClick={() => deleteChat(c.id)} className="p-1 hover:text-red-500"><Trash2 size={12}/></button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-               </div>
-            </aside>
+        import IAAssistant from './components/IAAssistant';
 
-            <div className="flex-1 flex flex-col bg-white">
-              <div className="flex-1 overflow-y-auto p-10 space-y-8">
-                <div className="max-w-4xl mx-auto space-y-10">
-                  {currentChat?.messages.map((m, i) => (
-                    <div key={i} className={`flex gap-6 ${m.role === 'user' ? 'flex-row-reverse' : ''}`}>
-                      <div className={`w-10 h-10 rounded-2xl shrink-0 flex items-center justify-center shadow-md ${m.role === 'user' ? 'bg-slate-900 text-white' : 'bg-blue-600 text-white'}`}>
-                        {m.role === 'user' ? <User size={20}/> : <Bot size={20}/>}
-                      </div>
-                      <div className={`max-w-[80%] leading-relaxed ${m.role === 'user' ? 'bg-slate-100 p-6 rounded-[32px] rounded-tr-none' : 'pt-2'}`}>
-                        {m.image && <img src={m.image} alt="Anexo" className="mb-4 rounded-2xl max-h-60 border border-slate-200"/>}
-                        {m.generatedImage && <img src={m.generatedImage} alt="IA Gerada" className="mb-4 rounded-2xl shadow-xl border-4 border-white"/>}
-                        <p className="whitespace-pre-wrap text-sm text-slate-800">{m.text}</p>
-                      </div>
-                    </div>
-                  ))}
-                  {isTyping && <div className="flex items-center gap-3 text-blue-500 font-black text-[10px] uppercase animate-pulse"><Loader2 size={16} className="animate-spin"/> Processando...</div>}
-                  <div ref={chatEndRef} />
-                </div>
-              </div>
 
-              <div className="p-10 bg-white border-t border-slate-100">
-                <div className="max-w-3xl mx-auto space-y-4">
-                  {attachedImage && (
-                    <div className="relative inline-block">
-                      <img src={attachedImage} className="w-20 h-20 rounded-xl object-cover border-2 border-blue-500"/>
-                      <button onClick={() => setAttachedImage(null)} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><X size={12}/></button>
-                    </div>
-                  )}
-                  <div className="bg-slate-100 border-2 border-transparent focus-within:border-blue-500 focus-within:bg-white rounded-[32px] p-2 flex items-end shadow-sm transition-all">
-                    <button onClick={() => fileInputRef.current.click()} className="p-4 text-slate-400 hover:text-blue-600"><Paperclip size={20}/></button>
-                    <input type="file" ref={fileInputRef} hidden onChange={handleFileUpload} accept="image/*" />
-                    <button onClick={toggleRecording} className={`p-4 transition-all ${isRecording ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-blue-600'}`}><Mic size={20}/></button>
-                    <textarea rows="1" value={userInput} onChange={(e) => setUserInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()} placeholder="Pergunte qualquer coisa ou gere uma imagem..." className="flex-1 bg-transparent border-none outline-none text-sm font-medium py-4 px-2 resize-none"/>
-                    <button onClick={handleSendMessage} className="bg-blue-600 text-white p-4 rounded-full hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all"><Send size={20} /></button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+
+            {/* IA ASSISTANT */}
+            {activeTab === "ai" && (
+              <IAAssistant
+                folders={folders}
+                setFolders={setFolders}
+                chats={chats}
+                activeChatId={activeChatId}
+                setActiveChatId={setActiveChatId}
+                createNewChat={createNewChat}
+                renameChat={renameChat}
+                deleteChat={deleteChat}
+                currentChat={currentChat}
+                isTyping={isTyping}
+                chatEndRef={chatEndRef}
+                attachedImage={attachedImage}
+                setAttachedImage={setAttachedImage}
+                fileInputRef={fileInputRef}
+                handleFileUpload={handleFileUpload}
+                toggleRecording={toggleRecording}
+                isRecording={isRecording}
+                userInput={userInput}
+                setUserInput={setUserInput}
+                handleSendMessage={handleSendMessage}
+              />
+            )} 
       </div>
     </div>
   );
