@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { 
   FileText, ShieldCheck, Send, Bot, Sparkles, Loader2, Search, MapPin, 
   Building2, Plus, ExternalLink, User, Lock, FolderPlus, Trash2, Folder, 
@@ -7,6 +8,9 @@ import {
 } from 'lucide-react';
 
 const App = () => {
+      const formatTextToMarkdown = (text) => {
+      return text.replace(/\n/g, "  \n"); // Markdown usa dois espaços + quebra de linha
+    };
   // --- Estados de Navegação ---
   const [activeTab, setActiveTab] = useState("docs");
   const [isTyping, setIsTyping] = useState(false);
@@ -26,7 +30,28 @@ const App = () => {
 
   const chatEndRef = useRef(null);
   const fileInputRef = useRef(null);
-  const apiKey = "AIzaSyDkniugmqLQFwL-twhEZ1ZDbnCUh-SLcyQ"; 
+  const apiKey = "AIzaSyDkniugmqLQFwL-twhEZ1ZDbnCUh-SLcyQ";
+
+ // --- Captura de prints colados no chat ---
+useEffect(() => {
+  const handlePaste = (e) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf("image") !== -1) {
+        const blob = item.getAsFile();
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          setAttachedImage(event.target.result);
+        };
+        reader.readAsDataURL(blob);
+      }
+    }
+  };
+
+  window.addEventListener("paste", handlePaste);
+  return () => window.removeEventListener("paste", handlePaste);
+}, []); 
 
   const states = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
   
@@ -114,8 +139,13 @@ const App = () => {
         const payload = {
           contents: [{
             parts: [
-              { text: messageText },
-              ...(currentImage ? [{ inlineData: { mimeType: "image/png", data: currentImage.split(',')[1] } }] : [])
+              { text: messageText || `Analise este arquivo: ${currentImage?.name || ''}` },
+              ...(currentImage ? [{
+                inlineData: {
+                  mimeType: currentImage.type,
+                  data: currentImage.data.split(',')[1] // remove data: prefix
+                }
+              }] : [])
             ]
           }]
         };
@@ -140,14 +170,21 @@ const App = () => {
     }
   };
 
-  const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file && file.type.startsWith('image/')) {
+    const handleFileUpload = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
       const reader = new FileReader();
-      reader.onload = (rev) => setAttachedImage(rev.target.result);
+      reader.onload = (rev) => {
+        setAttachedImage({
+          name: file.name,
+          type: file.type,
+          data: rev.target.result
+        });
+      };
+      
       reader.readAsDataURL(file);
-    }
-  };
+    };
 
   const toggleRecording = () => {
     setIsRecording(!isRecording);
@@ -172,13 +209,65 @@ const App = () => {
       ]
     },
     {
-      category: "2. Certidões Fiscais e Tributárias",
-      icon: <Shield />,
-      items: [
-        { name: "CND Federal (Receita/PGFN)", level: "federal", url: "https://servicos.receitafederal.gov.br/servico/certidoes/#/home/cnpj" },
-        { name: "Certidão Negativa Estadual (ICMS)", level: "estadual", url: "https://www.google.com/search?q=Certidão+Negativa+Estadual+Sefaz+" },
-        { name: "Certidão Negativa Municipal (ISS)", level: "municipal", url: "https://www.google.com/search?q=Certidão+Negativa+Municipal+Tributos+" }
-      ]
+    category: "2. Certidões Fiscais e Tributárias",
+    icon: <Shield />,
+    items: [
+      // Federal
+      { name: "CND Federal (Receita/PGFN)", level: "federal", url: "https://servicos.receitafederal.gov.br/servico/certidoes/#/home/cnpj" },
+
+      // Subcategoria: Certidão Negativa Estadual (ICMS)
+      {
+        subcategory: "Certidão Negativa Estadual (ICMS)",
+        items: [
+          { name: "Acre (AC)", url: "http://www.sefaznet.ac.gov.br/sefazonline/servlet/principal" },
+          { name: "Alagoas (AL)", url: "https://contribuinte.sefaz.al.gov.br/certidao/#/" },
+          { name: "Amapá (AP)", url: "https://www.sefaz.ap.gov.br/" },
+          { name: "Amazonas (AM)", url: "https://www.sefaz.am.gov.br/portfolio-servicos/detalhes/1042" },
+          { name: "Bahia (BA)", url: "https://servicos.sefaz.ba.gov.br/sistemas/DSCRE/Modulos/Publico/EmissaoCertidao.aspx" },
+          { name: "Ceará (CE)", url: "https://portalservicos.sefaz.ce.gov.br/tema-geral+certidoes-e-certificados-emissao-e-validacao+emitir-certidao-negativa-estadual+64da4ef9170f5a26dc566594" },
+          { name: "Distrito Federal (DF)", url: "https://portal.fazenda.df.gov.br/" },
+          { name: "Espírito Santo (ES)", url: "https://sefaz.es.gov.br/emissao-de-certidoes" },
+          { name: "Goiás (GO)", url: "https://www.tesouro.go.gov.br/" },
+          { name: "Maranhão (MA)", url: "https://sistemas1.sefaz.ma.gov.br/portalsefaz/jsp/menu/view.jsf?codigo=16" },
+          { name: "Mato Grosso (MT)", url: "https://www.sefaz.mt.gov.br/cnd/certidao/servlet/ServletRotd?origem=60" },
+          { name: "Mato Grosso do Sul (MS)", url: "https://servicos.efazenda.ms.gov.br/pndfis/Home/Emissao" },
+          { name: "Minas Gerais (MG)", url: "https://www.fazenda.mg.gov.br/servicos/empresa/cdt/emitir-certidao-de-debitos-tributarios-cdt/" },
+          { name: "Pará (PA)", url: "https://consultas.tjpa.jus.br/certidao/pages/pesquisaGeralCentralCertidao.action" },
+          { name: "Paraíba (PB)", url: "https://www.secretariastecnicas.pb.gov.br/servicos/certidoes" },
+          { name: "Paraná (PR)", url: "https://www.fazenda.pr.gov.br/servicos/Mais-buscados/Certidoes/Emitir-Certidao-Negativa-Receita-Estadual-kZrX5gol" },
+          { name: "Pernambuco (PE)", url: "https://www.sefaz.pe.gov.br/" },
+          { name: "Piauí (PI)", url: "https://www.sefaz.pi.gov.br/" },
+          { name: "Rio de Janeiro (RJ)", url: "https://www4.fazenda.rj.gov.br/servicos/certidoes/" },
+          { name: "Rio Grande do Norte (RN)", url: "https://www.set.rn.gov.br/" },
+          { name: "Rio Grande do Sul (RS)", url: "https://www.sefaz.rs.gov.br/" },
+          { name: "Rondônia (RO)", url: "https://www.sefin.ro.gov.br/" },
+          { name: "Roraima (RR)", url: "https://www.sefaz.rr.gov.br/" },
+          { name: "Santa Catarina (SC)", url: "https://www.sef.sc.gov.br/" },
+          { name: "São Paulo (SP)", url: "https://www.fazenda.sp.gov.br/" },
+          { name: "Sergipe (SE)", url: "https://www.sefaz.se.gov.br/" },
+          { name: "Tocantins (TO)", url: "https://www.sefaz.to.gov.br/" },
+          { name: "Demais Estados", url: "https://www.google.com/search?q=Certidão+Negativa+Estadual+ICMS+<estado>" }
+        ]
+      },
+
+      // Subcategoria: Certidão de Falência, Concordata e Recuperação Judicial (estadual)
+      {
+        subcategory: "Falência, Concordata e Recuperação Judicial (Estadual)",
+        items: [
+          { name: "São Paulo (SP)", url: "https://certidoes.tjsp.jus.br/" },
+          { name: "Bahia (BA)", url: "https://www.tjba.jus.br/portal/certidoes/" },
+          { name: "Ceará (CE)", url: "https://www.tjce.jus.br/certidoes/" },
+          { name: "Maranhão (MA)", url: "https://www.tjma.jus.br/" },
+          { name: "Minas Gerais (MG)", url: "https://www.tjmg.jus.br/portal-tjmg/processos/certidao-judicial/" },
+          { name: "Paraíba (PB)", url: "http://app.tjpb.jus.br/certo/validarcertidao" },
+          { name: "Distrito Federal (DF)", url: "https://www.tjdft.jus.br/carta-de-servicos/servicos/certidoes/emitir-nada-consta" },
+          { name: "Demais Estados", url: "https://www.google.com/search?q=Certidão+de+Falência+Concordata+Recuperação+Judicial+<estado>" }
+        ]
+      },
+
+      // Certidão Municipal
+      { name: "Certidão Negativa Municipal (ISS)", level: "municipal", url: "https://www.google.com/search?q=Certidão+Negativa+Municipal+Tributos+" }
+    ]
     },
     {
       category: "3. Trabalhista e Previdenciária",
@@ -188,15 +277,50 @@ const App = () => {
         { name: "Certidão Negativa Trabalhista (CNDT)", level: "federal", url: "https://www.tst.jus.br/certidao" }
       ]
     },
+{
+  category: "4. Registros em Saúde",
+  icon: <Stethoscope />,
+  items: [
+    // Subcategoria: Certidão de Regularidade PJ (CRM)
     {
-      category: "4. Registros em Saúde",
-      icon: <Stethoscope />,
+      subcategory: "Certidão de Regularidade PJ (CRM) (Estadual)",
       items: [
-        { name: "Certidão de Regularidade PJ (CRM)", level: "estadual", url: "https://portal.cfm.org.br/servicos-para-medicos/certidao" },
-        { name: "Alvará Sanitário", level: "municipal", url: "https://www.google.com/search?q=Alvará+Sanitário+Vigilância+Sanitária+" },
-        { name: "Cadastro no CNES", level: "federal", url: "https://cnes.datasus.gov.br/" }
+        { name: "Acre (AC)", url: "https://www.crm.ac.gov.br/" },
+        { name: "Alagoas (AL)", url: "https://www.crmal.org.br/" },
+        { name: "Amapá (AP)", url: "https://www.crmap.org.br/" },
+        { name: "Amazonas (AM)", url: "https://www.crmam.org.br/" },
+        { name: "Bahia (BA)", url: "https://www.crmba.org.br/" },
+        { name: "Ceará (CE)", url: "https://www.crmce.org.br/" },
+        { name: "Distrito Federal (DF)", url: "https://www.crmdf.org.br/" },
+        { name: "Espírito Santo (ES)", url: "https://www.crmes.org.br/" },
+        { name: "Goiás (GO)", url: "https://www.crmgo.org.br/" },
+        { name: "Maranhão (MA)", url: "https://www.crmma.org.br/" },
+        { name: "Mato Grosso (MT)", url: "https://www.crmmt.org.br/" },
+        { name: "Mato Grosso do Sul (MS)", url: "https://www.crmms.org.br/" },
+        { name: "Minas Gerais (MG)", url: "https://www.crmmg.org.br/" },
+        { name: "Pará (PA)", url: "https://www.crmpa.org.br/" },
+        { name: "Paraíba (PB)", url: "https://www.crmpb.org.br/" },
+        { name: "Paraná (PR)", url: "https://www.crmpr.org.br/" },
+        { name: "Pernambuco (PE)", url: "https://www.crmpe.org.br/" },
+        { name: "Piauí (PI)", url: "https://www.crmpi.org.br/" },
+        { name: "Rio de Janeiro (RJ)", url: "https://www.crmrj.org.br/" },
+        { name: "Rio Grande do Norte (RN)", url: "https://www.crmrn.org.br/" },
+        { name: "Rio Grande do Sul (RS)", url: "https://www.crmrs.org.br/" },
+        { name: "Rondônia (RO)", url: "https://www.crmro.org.br/" },
+        { name: "Roraima (RR)", url: "https://www.crmrr.org.br/" },
+        { name: "Santa Catarina (SC)", url: "https://www.crmsc.org.br/" },
+        { name: "São Paulo (SP)", url: "https://www.cremesp.org.br/" },
+        { name: "Sergipe (SE)", url: "https://www.crmse.org.br/" },
+        { name: "Tocantins (TO)", url: "https://www.crmto.org.br/" },
+        { name: "Demais Estados", url: "https://www.google.com/search?q=Certidão+Regularidade+PJ+CRM+<estado>" }
       ]
     },
+
+    // Outros registros
+    { name: "Alvará Sanitário", level: "municipal", url: "https://www.google.com/search?q=Alvará+Sanitário+Vigilância+Sanitária+" },
+    { name: "Cadastro no CNES", level: "federal", url: "https://cnes.datasus.gov.br/" }
+  ]
+},
     {
       category: "5. Licenças Municipais",
       icon: <Landmark />,
@@ -370,9 +494,15 @@ const App = () => {
                         {m.role === 'user' ? <User size={20}/> : <Bot size={20}/>}
                       </div>
                       <div className={`max-w-[80%] leading-relaxed ${m.role === 'user' ? 'bg-slate-100 p-6 rounded-[32px] rounded-tr-none' : 'pt-2'}`}>
-                        {m.image && <img src={m.image} alt="Anexo" className="mb-4 rounded-2xl max-h-60 border border-slate-200"/>}
+                        {m.image && m.image.data && (
+                          m.image.type.startsWith('image/')
+                            ? <img src={m.image.data} alt={m.image.name} className="mb-4 rounded-2xl max-h-60 border border-slate-200"/>
+                            : <a href={m.image.data} download={m.image.name} className="text-blue-600 underline">{m.image.name}</a>
+                        )}
                         {m.generatedImage && <img src={m.generatedImage} alt="IA Gerada" className="mb-4 rounded-2xl shadow-xl border-4 border-white"/>}
-                        <p className="whitespace-pre-wrap text-sm text-slate-800">{m.text}</p>
+                        <ReactMarkdown className="prose text-sm text-slate-800">
+                          {m.text}
+                        </ReactMarkdown>
                       </div>
                     </div>
                   ))}
@@ -391,7 +521,7 @@ const App = () => {
                   )}
                   <div className="bg-slate-100 border-2 border-transparent focus-within:border-blue-500 focus-within:bg-white rounded-[32px] p-2 flex items-end shadow-sm transition-all">
                     <button onClick={() => fileInputRef.current.click()} className="p-4 text-slate-400 hover:text-blue-600"><Paperclip size={20}/></button>
-                    <input type="file" ref={fileInputRef} hidden onChange={handleFileUpload} accept="image/*" />
+                    <input type="file" ref={fileInputRef} hidden onChange={handleFileUpload} />
                     <button onClick={toggleRecording} className={`p-4 transition-all ${isRecording ? 'text-red-500 animate-pulse' : 'text-slate-400 hover:text-blue-600'}`}><Mic size={20}/></button>
                     <textarea rows="1" value={userInput} onChange={(e) => setUserInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()} placeholder="Pergunte qualquer coisa ou gere uma imagem..." className="flex-1 bg-transparent border-none outline-none text-sm font-medium py-4 px-2 resize-none"/>
                     <button onClick={handleSendMessage} className="bg-blue-600 text-white p-4 rounded-full hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all"><Send size={20} /></button>
